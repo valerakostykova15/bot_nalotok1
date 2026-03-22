@@ -261,11 +261,11 @@ async def choose_stats_person(message: Message, state: FSMContext):
         await message.answer("Главное меню", reply_markup=get_main_menu())
         return
 
-    mapping = {
-        "Жена": "wife",
-        "Муж": "husband",
-        "Общее": "common",
-    }
+   mapping = {
+    "Кица": "wife",
+    "Кит": "husband",
+    "Общее": "common",
+	}
 
     if message.text not in mapping:
         await message.answer("Выберите вариант кнопкой ниже.")
@@ -422,10 +422,34 @@ async def fallback_handler(message: Message):
     )
 
 
+from aiohttp import web
+
+
+async def healthcheck(request):
+    return web.Response(text="Bot is running")
+
+
 async def main():
     await init_db()
     print("Бот запущен...")
-    await dp.start_polling(bot)
+
+    # запускаем бота в фоне
+    asyncio.create_task(dp.start_polling(bot))
+
+    # создаём веб-сервер (нужен для Render)
+    app = web.Application()
+    app.router.add_get("/", healthcheck)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.environ.get("PORT", 10000))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
+    # держим процесс живым
+    while True:
+        await asyncio.sleep(3600)
 
 
 if __name__ == "__main__":
