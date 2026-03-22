@@ -25,6 +25,9 @@ async def init_db():
 
 
 async def add_expense(user_id: int, user_name: str, amount: float, category: str):
+    if not DATABASE_URL:
+        raise ValueError("Не найден DATABASE_URL")
+
     conn = await asyncpg.connect(DATABASE_URL)
     try:
         await conn.execute("""
@@ -36,13 +39,16 @@ async def add_expense(user_id: int, user_name: str, amount: float, category: str
 
 
 async def get_stats(user_ids: list[int], days: int):
+    if not DATABASE_URL:
+        raise ValueError("Не найден DATABASE_URL")
+
     conn = await asyncpg.connect(DATABASE_URL)
     try:
         rows = await conn.fetch("""
             SELECT category, SUM(amount)::float AS total
             FROM expenses
             WHERE user_id = ANY($1::bigint[])
-              AND created_at >= NOW() - ($2 || ' days')::interval
+              AND created_at >= NOW() - make_interval(days => $2)
             GROUP BY category
             ORDER BY category
         """, user_ids, days)
