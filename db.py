@@ -1,64 +1,54 @@
-import aiosqlite
+import os
+import asyncpg
 
-DB_NAME = "budget.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 
 async def init_db():
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
+    if not DATABASE_URL:
+        raise ValueError("Не найден DATABASE_URL")
+
+    conn = await asyncpg.connect(DATABASE_URL)
+    try:
+        await conn.execute("""
             CREATE TABLE IF NOT EXISTS expenses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT NOT NULL,
                 user_name TEXT,
-                amount REAL NOT NULL,
+                amount NUMERIC NOT NULL,
                 category TEXT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        await db.commit()
+    finally:
+        await conn.close()
 
 
 async def add_expense(user_id: int, user_name: str, amount: float, category: str):
-    async with aiosqlite.connect(DB_NAME) as db:
-        await db.execute("""
+    conn = await asyncpg.connect(DATABASE_URL)
+    try:
+        await conn.execute("""
             INSERT INTO expenses (user_id, user_name, amount, category)
-            VALUES (?, ?, ?, ?)
-        """, (user_id, user_name, amount, category))
-        await db.commit()
+            VALUES ($1, $2, $3, $4)
+        """, user_id, user_name, amount, category)
+    finally:
+        await conn.close()
 
 
 async def get_stats(user_ids: list[int], days: int):
-    async with aiosqlite.connect(DB_NAME) as db:
-        if days == 1:
-            query = """
-                SELECT category, SUM(amount)
-                FROM expenses
-                WHERE user_id IN ({})
-                  AND date(created_at) = date('now', 'localtime')
-                GROUP BY category
-            """
-        else:
-            query = """
-                SELECT category, SUM(amount)
-                FROM expenses
-                WHERE user_id IN ({})
-                  AND datetime(created_at) >= datetime('now', ?, 'localtime')
-                GROUP BY category
-            """
+    conn = await asyncpg.connect(DATABASE_URL)
+    try:
+        rows = await conn.fetch("""
+            SELECT category, SUM(amount)::float AS total
+            FROM expenses
+            WHERE user_id = ANY($1::bigint[])
+              AND created_at >= NOW() - ($2 || ' days')::interval
+            GROUP BY category
+            ORDER BY category
+        """, user_ids, days)
+    finally:
+        await conn.close()
 
-        placeholders = ",".join("?" for _ in user_ids)
-
-        if days == 1:
-            cursor = await db.execute(query.format(placeholders), user_ids)
-        else:
-            cursor = await db.execute(
-                query.format(placeholders),
-                user_ids + [f"-{days} days"]
-            )
-
-        rows = await cursor.fetchall()
-
-    category_stats = {category: amount for category, amount in rows}
-    total = sum(category_stats.values())
-
-    return total, category_stats
+    stats = {row["category"]: row["total"] for row in rows}
+    total = sum(stats.values())
+    return total, stats
