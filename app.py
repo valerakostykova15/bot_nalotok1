@@ -72,7 +72,7 @@ def get_main_menu():
 def get_categories_menu():
     return ReplyKeyboardMarkup(
         keyboard=[
-            [KeyboardButton(text="покущац и быть"), KeyboardButton(text="дорога")],
+            [KeyboardButton(text="покущац и на быть"), KeyboardButton(text="дорога")],
             [KeyboardButton(text="вредные привычки"), KeyboardButton(text="аптека")],
             [KeyboardButton(text="кредитс"), KeyboardButton(text="обязательные платежи")],
             [KeyboardButton(text="помощь родственникам"), KeyboardButton(text="доставки")],
@@ -135,9 +135,9 @@ def format_stats_text(title: str, total: float, category_stats: dict, view_mode:
 
 
 def get_person_data(person_key: str):
-    if person_key == "wife":
+    if person_key == "Кица":
         return [WIFE_ID], WIFE_NAME
-    if person_key == "husband":
+    if person_key == "Кит":
         return [HUSBAND_ID], HUSBAND_NAME
     return [WIFE_ID, HUSBAND_ID], "Общее"
 
@@ -261,11 +261,11 @@ async def choose_stats_person(message: Message, state: FSMContext):
         await message.answer("Главное меню", reply_markup=get_main_menu())
         return
 
-   mapping = {
+  mapping = {
     "Кица": "wife",
     "Кит": "husband",
     "Общее": "common",
-	}
+}
 
     if message.text not in mapping:
         await message.answer("Выберите вариант кнопкой ниже.")
