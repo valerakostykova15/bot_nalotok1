@@ -73,7 +73,7 @@ def get_categories_menu():
     return ReplyKeyboardMarkup(
         keyboard=[
             [KeyboardButton(text="покущац и на быть"), KeyboardButton(text="дорога")],
-            [KeyboardButton(text="вредные привычки"), KeyboardButton(text="аптека")],
+            [KeyboardButton(text="энергосики и сигаретки"), KeyboardButton(text="аптека")],
             [KeyboardButton(text="кредитс"), KeyboardButton(text="обязательные платежи")],
             [KeyboardButton(text="помощь родственникам"), KeyboardButton(text="доставки")],
             [KeyboardButton(text="развлечения")],[KeyboardButton(text="другое")],
